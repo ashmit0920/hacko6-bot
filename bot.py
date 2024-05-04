@@ -45,13 +45,23 @@ async def create(ctx: SlashContext):
 async def create_role(ctx: SlashContext, name: str, member1: Member, member2: Member, member3: Member = False, member4: Member = False, member5: Member = False, reason=None):
     guild = bot.get_guild(ctx.guild_id)
 
-    if ctx.channel_id == 1229470228623261777: # Team creation channel
-        new_role = await guild.create_role(name=name, color=None)
+    if ctx.channel_id == 1229470228623261777 or 1: # Team creation channel
+        new_role = await guild.create_role(name=name, color=interactions.RoleColors.BLUE)
         hacko_role = 1227726112453562441 # Role id of Hacko 6 role
         members = [member1.global_name, member2.global_name]
         
         await ctx.defer()
         await asyncio.sleep(5)
+        
+        overwrites = [
+            interactions.PermissionOverwrite(id=739806361210322984, type='role', allow=0, deny=1024),  # Deny permissions to @everyone
+            interactions.PermissionOverwrite(id=bot.user.id, type='member', allow=1024, deny=0),  # Allow permissions to the bot
+            interactions.PermissionOverwrite(id=1022114019097710632, type='role', allow=1024, deny=0) # mod role
+        ]
+        team_channel = await guild.create_text_channel(name=f'{name}-text', permission_overwrites=overwrites)
+        voice_channel = await guild.create_voice_channel(name=f'{name}-voice', permission_overwrites=overwrites)
+        await team_channel.set_permission(new_role, view_channel=True, send_messages=True)
+        await voice_channel.set_permission(new_role, view_channel=True, connect=True, speak=True)
         
         await ctx.author.add_roles([new_role, hacko_role])
         await member1.add_roles([new_role, hacko_role])
@@ -65,11 +75,13 @@ async def create_role(ctx: SlashContext, name: str, member1: Member, member2: Me
         if member5:
             await member5.add_roles([new_role, hacko_role])
             members.append(member5.global_name)
-        
+
         teams[name] = members
         
         with open("teams.json", "w") as f:
             json.dump(teams, f, indent=4)
+        
+        await team_channel.send(f'{new_role.mention} Welcome to HackOwasp 6.0! This is the official text channel for your team. A voice channel has also been created with the same name.')
 
         nl = '\n'
         embed = interactions.Embed(
@@ -143,5 +155,17 @@ async def faq(ctx: SlashContext):
         thumbnail=bot.user.avatar.url,
     )
     await ctx.send(embed=embed, ephemeral=True)
+
+# Delete channels
+# @slash_command(name="chdelete", description="Delete old channels.")
+# async def delete(ctx: SlashContext):
+#     await ctx.defer()
+#     await asyncio.sleep(7)
+#     guild = bot.get_guild(ctx.guild_id)
+#     for ch in guild.channels:
+#         if "voice" in ch.name:
+#             await ch.delete()
+            
+#     await ctx.send("successful")
 
 bot.start(token)
